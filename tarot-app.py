@@ -4,28 +4,28 @@ import time
 import google.generativeai as genai
 
 # ==========================================
-# 👇 [필수] 여기에 본인의 API 키를 붙여넣으세요!
-# 따옴표("") 안에 가지고 계신 키를 그대로 넣으시면 됩니다.
+# 👇 [필수] 10번째 줄 따옴표 안에 키를 붙여넣으세요
+# (주의: '여기에...' 글자는 모두 지우셔야 합니다!)
 MY_SECRET_KEY = "AIzaSyACXNn2KKH1093AToL1lflB80Pt7oGT7AM"
 # ==========================================
 
 # --- 1. 페이지 설정 ---
-st.set_page_config(page_title="Gemini 타로 상담소", page_icon="🔮", layout="wide")
+st.set_page_config(page_title="Zoe의 상냥한 타로 상담소", page_icon="🔮", layout="wide")
 
 # --- 2. UI 설정 ---
-st.title("🔮 Gemini AI 타로 상담소")
-st.markdown("### 구글 Gemini가 당신의 운명을 무료로 읽어드립니다.")
+st.title("🔮 Zoe의 상냥한 타로 상담소")
+st.markdown("### Zoe가 당신의 운명을 읽어드립니다.")
 
-# --- 3. 사이드바 설정 (여기가 핵심!) ---
+# --- 3. 사이드바 설정 ---
 with st.sidebar:
     st.header("🔧 설정")
     
-    # 키가 "여기에..." 라는 글자 그대로라면 (아직 입력 안 함) -> 입력창 보여줌
-    if "여기에_당신의" in MY_SECRET_KEY:
+    # 키 길이가 20글자보다 짧으면 (키를 안 넣은 것으로 간주) -> 입력창 표시
+    if len(MY_SECRET_KEY) < 20:
         api_key = st.text_input("Google AI API Key 입력", type="password")
-        st.caption("※ 코드의 10번째 줄에 키를 적으면 이 입력창이 사라집니다.")
+        st.warning("⚠️ 코드 10번째 줄에 API Key를 입력하면 이 창이 사라집니다.")
     
-    # 키를 입력했다면 -> 입력창 숨김!
+    # 키가 20글자 이상이면 (키를 넣은 것으로 간주) -> 입력창 숨김
     else:
         api_key = MY_SECRET_KEY
         st.success("✅ API Key가 코드에 적용되었습니다.")
@@ -70,56 +70,48 @@ question = st.text_input("고민을 적어주세요:", placeholder="예: 지금 
 
 # --- 6. 상담 로직 ---
 if st.button("Gemini에게 물어보기 🎴"):
-    # 키 확인
-    if not api_key or "여기에" in api_key:
-        st.error("⚠️ API Key가 없습니다. 코드에 적거나 사이드바에 입력해주세요.")
+    if not api_key or len(api_key) < 20:
+        st.error("⚠️ API Key가 유효하지 않습니다. 코드나 사이드바를 확인해주세요.")
     elif not question:
         st.warning("질문을 입력해주세요!")
     else:
         with st.spinner('Gemini가 78장의 타로 카드를 해석하고 있습니다...'):
-            # 1. 카드 3장 뽑기
-            selected_cards = random.sample(full_deck, 3)
-            positions = ["과거/원인", "현재/상황", "미래/결과"]
-            
-            # 2. 해석을 위한 프롬프트 만들기
-            card_info = ""
-            for i in range(3):
-                card = selected_cards[i]
-                info = f"{i+1}. {positions[i]}: {card['name']}"
-                if 'suit_meaning' in card:
-                    info += f" (속성: {card['suit_meaning']})"
-                card_info += info + "\n"
-
-            prompt = f"""
-            당신은 타로 마스터입니다. 다음 정보를 바탕으로 상담해주세요.
-            
-            사용자 질문: "{question}"
-            
-            뽑힌 카드:
-            {card_info}
-            
-            요구사항:
-            1. 카드의 상징과 질문을 연결하여 해석하세요.
-            2. 따뜻하고 신비로운 말투를 사용하세요.
-            3. 결과는 읽기 편하게 Markdown 서식을 사용하세요.
-            """
-
-            # 3. 구글 Gemini 호출
             try:
-                genai.configure(api_key=api_key)
+                # 1. 카드 3장 뽑기
+                selected_cards = random.sample(full_deck, 3)
+                positions = ["과거/원인", "현재/상황", "미래/결과"]
                 
+                card_info = ""
+                for i in range(3):
+                    card = selected_cards[i]
+                    info = f"{i+1}. {positions[i]}: {card['name']}"
+                    if 'suit_meaning' in card:
+                        info += f" (속성: {card['suit_meaning']})"
+                    card_info += info + "\n"
+
+                # 2. 프롬프트
+                prompt = f"""
+                당신은 타로 마스터입니다.
+                사용자 질문: "{question}"
+                뽑힌 카드: {card_info}
+                
+                해석 조건:
+                1. 카드의 상징과 질문을 연결하여 따뜻하게 해석하세요.
+                2. Markdown 서식을 사용해 가독성을 높이세요.
+                """
+
+                # 3. 모델 호출
+                genai.configure(api_key=api_key)
                 try:
                     model = genai.GenerativeModel('gemini-1.5-flash')
                     response = model.generate_content(prompt)
                 except:
-                    # 1.5 모델 실패 시 pro 모델 사용
                     model = genai.GenerativeModel('gemini-pro')
                     response = model.generate_content(prompt)
                 
                 # 4. 결과 출력
                 st.divider()
                 st.write(f"### **Q. {question}**")
-                
                 cols = st.columns(3)
                 for i in range(3):
                     with cols[i]:
