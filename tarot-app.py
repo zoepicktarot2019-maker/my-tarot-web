@@ -4,8 +4,8 @@ import time
 import google.generativeai as genai
 
 # ==========================================
-# 👇 [필수] API 키 입력
-# 보안을 위해 실제 배포 시에는 Streamlit Secrets 기능을 사용하는 것이 좋습니다.
+# 👇 [필수] 10번째 줄 따옴표 안에 가지고 계신 API 키를 붙여넣으세요!
+# (주의: '여기에...' 글자는 지우고 키만 넣으셔야 합니다.)
 MY_SECRET_KEY = "AIzaSyACXNn2KKH1093AToL1lflB80Pt7oGT7AM"
 # ==========================================
 
@@ -28,8 +28,8 @@ with st.sidebar:
     # 키가 20글자 이상이면 (키를 넣은 것으로 간주) -> 입력창 숨김
     else:
         api_key = MY_SECRET_KEY
-        st.success("✅ API Key가 코드에 적용되었습니다.")
-        st.info("입력창은 자동으로 숨겨졌습니다.")
+        st.success("✅ Zoe가 준비되었습니다.")
+        st.info("API Key 설정 완료")
 
 # --- 4. 타로 카드 데이터 (78장) ---
 major_arcana = [
@@ -75,7 +75,7 @@ if st.button("Zoe에게 물어보기 🎴"):
     elif not question:
         st.warning("질문을 입력해주세요!")
     else:
-        with st.spinner('Zoe가 78장의 타로 카드를 해석하고 있습니다...'):
+        with st.spinner('Zoe가 78장의 타로 카드를 읽고 있습니다...'):
             try:
                 # 1. 카드 3장 뽑기
                 selected_cards = random.sample(full_deck, 3)
@@ -89,7 +89,7 @@ if st.button("Zoe에게 물어보기 🎴"):
                         info += f" (속성: {card['suit_meaning']})"
                     card_info += info + "\n"
 
-                # 2. 프롬프트
+                # 2. 프롬프트 (Zoe 페르소나 적용)
                 prompt = f"""
                 당신은 'Zoe'라는 이름의 상냥하고 신비로운 타로 마스터입니다.
                 사용자 질문: "{question}"
@@ -100,13 +100,11 @@ if st.button("Zoe에게 물어보기 🎴"):
                 2. 각 카드의 상징과 사용자의 질문을 연결하여 구체적으로 해석하세요.
                 3. 과거, 현재, 미래의 흐름을 자연스럽게 연결해주세요.
                 4. 마지막에는 긍정적인 조언이나 용기를 주는 한마디를 덧붙이세요.
-                5. Markdown 서식을 사용하여 가독성을 높이세요 (볼드체, 구분선 등).
+                5. Markdown 서식을 사용하여 가독성을 높이세요.
                 """
 
-                # 3. 모델 호출 (최신 모델 gemini-1.5-flash 사용)
+                # 3. 모델 호출 (최신 1.5 Flash 모델만 사용)
                 genai.configure(api_key=api_key)
-                
-                # 오류 원인이었던 구형 모델(gemini-pro)로의 fall-back 코드를 제거했습니다.
                 model = genai.GenerativeModel('gemini-1.5-flash')
                 response = model.generate_content(prompt)
                 
@@ -126,4 +124,4 @@ if st.button("Zoe에게 물어보기 🎴"):
                 
             except Exception as e:
                 st.error(f"오류가 발생했습니다: {e}")
-                st.info("API Key가 정확한지, 혹은 Google AI Studio에서 해당 모델 사용이 가능한지 확인해주세요.")
+                st.info("requirements.txt 파일에 'google-generativeai>=0.8.3'이 적혀있는지 꼭 확인해주세요!")
