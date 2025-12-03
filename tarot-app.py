@@ -3,20 +3,30 @@ import random
 import time
 import google.generativeai as genai
 
-# --- 1. 페이지 설정 ---
-st.set_page_config(page_title="Gemini 타로 상담소 (Final)", page_icon="🔮", layout="wide")
+# --- [중요] 여기에 API 키를 붙여넣으세요 ---
+# 따옴표("") 안에 sk-로 시작하는 키를 넣으면 됩니다.
+MY_SECRET_KEY = "sk-여기에_당신의_긴_API키를_붙여넣으세요"
+# ---------------------------------------
 
-# --- 2. UI 및 API 키 설정 ---
+# --- 1. 페이지 설정 ---
+st.set_page_config(page_title="Gemini 타로 상담소", page_icon="🔮", layout="wide")
+
+# --- 2. UI 설정 ---
 st.title("🔮 Gemini AI 타로 상담소")
 st.markdown("### 구글 Gemini가 당신의 운명을 무료로 읽어드립니다.")
 
+# 사이드바 설정
 with st.sidebar:
     st.header("🔧 설정")
-    # 구글 API 키 입력받기
-    api_key = st.text_input("Google AI API Key 입력", type="password")
-    st.caption("※ [Google AI Studio](https://aistudio.google.com/app/apikey)에서 무료로 발급받으세요.")
+    # 키가 코드에 적혀있으면 입력창을 숨기거나 채워둠
+    if MY_SECRET_KEY.startswith("sk-"):
+        st.success("✅ API Key가 코드에 저장되어 있습니다.")
+        api_key = MY_SECRET_KEY
+    else:
+        api_key = st.text_input("Google AI API Key 입력", type="password")
+        st.caption("※ 코드의 MY_SECRET_KEY 부분에 키를 적으면 매번 입력하지 않아도 됩니다.")
 
-# --- 3. 타로 카드 데이터 (78장 자동 생성) ---
+# --- 3. 타로 카드 데이터 (78장) ---
 major_arcana = [
     {"name": "The Fool (광대)", "emoji": "🤡"}, {"name": "The Magician (마법사)", "emoji": "🧙‍♂️"},
     {"name": "The High Priestess (여사제)", "emoji": "📜"}, {"name": "The Empress (여황제)", "emoji": "👸"},
@@ -51,22 +61,22 @@ for suit in suits:
 full_deck = major_arcana + minor_arcana
 
 # --- 4. 사용자 질문 ---
-question = st.text_input("고민을 적어주세요:", placeholder="예: 이직하는 게 좋을까요?")
+question = st.text_input("고민을 적어주세요:", placeholder="예: 지금 하는 공부가 나에게 맞을까요?")
 
 # --- 5. 상담 로직 ---
 if st.button("Gemini에게 물어보기 🎴"):
-    if not api_key:
-        st.error("⚠️ 왼쪽 사이드바에 Google API Key를 입력해주세요.")
+    # 키가 제대로 들어왔는지 확인 (코드에 적었거나, 입력창에 썼거나)
+    if not api_key or "여기에" in api_key:
+        st.error("⚠️ API Key가 설정되지 않았습니다. 코드에 적거나 사이드바에 입력해주세요.")
     elif not question:
         st.warning("질문을 입력해주세요!")
     else:
-        # 진행상황 바
-        with st.spinner('Gemini가 카드를 해석하고 있습니다...'):
-            # 카드 뽑기
+        with st.spinner('Gemini가 78장의 타로 카드를 해석하고 있습니다...'):
+            # 1. 카드 3장 뽑기
             selected_cards = random.sample(full_deck, 3)
             positions = ["과거/원인", "현재/상황", "미래/결과"]
             
-            # 프롬프트 작성
+            # 2. 해석을 위한 프롬프트 만들기
             card_info = ""
             for i in range(3):
                 card = selected_cards[i]
@@ -89,14 +99,20 @@ if st.button("Gemini에게 물어보기 🎴"):
             3. 결과는 읽기 편하게 Markdown 서식을 사용하세요.
             """
 
-            # 구글 Gemini 호출 (여기가 수정되었습니다!)
+            # 3. 구글 Gemini 호출
             try:
                 genai.configure(api_key=api_key)
-                # 에러가 나던 'gemini-pro' 대신 최신 무료 모델 'gemini-1.5-flash' 사용
-                model = genai.GenerativeModel('gemini-1.5-flash')
-                response = model.generate_content(prompt)
                 
-                # 결과 출력
+                # 안전한 모델 호출 (1.5 Flash가 안되면 Pro로 자동 시도)
+                try:
+                    model = genai.GenerativeModel('gemini-1.5-flash')
+                    response = model.generate_content(prompt)
+                except:
+                    # 만약 1.5가 안 되면 예비용으로 pro 사용
+                    model = genai.GenerativeModel('gemini-pro')
+                    response = model.generate_content(prompt)
+                
+                # 4. 결과 출력
                 st.divider()
                 st.write(f"### **Q. {question}**")
                 
@@ -113,4 +129,4 @@ if st.button("Gemini에게 물어보기 🎴"):
                 
             except Exception as e:
                 st.error(f"오류가 발생했습니다: {e}")
-                st.info("API Key가 올바른지 확인해주세요.")
+                st.info("API Key가 정확한지, 혹은 requirements.txt가 업데이트되었는지 확인해주세요.")
