@@ -4,8 +4,8 @@ import time
 import google.generativeai as genai
 
 # ==========================================
-# 👇 [필수] 10번째 줄 따옴표 안에 키를 붙여넣으세요
-# (주의: '여기에...' 글자는 모두 지우셔야 합니다!)
+# 👇 [필수] API 키 입력
+# 보안을 위해 실제 배포 시에는 Streamlit Secrets 기능을 사용하는 것이 좋습니다.
 MY_SECRET_KEY = "AIzaSyACXNn2KKH1093AToL1lflB80Pt7oGT7AM"
 # ==========================================
 
@@ -75,7 +75,7 @@ if st.button("Zoe에게 물어보기 🎴"):
     elif not question:
         st.warning("질문을 입력해주세요!")
     else:
-        with st.spinner('Gemini가 78장의 타로 카드를 해석하고 있습니다...'):
+        with st.spinner('Zoe가 78장의 타로 카드를 해석하고 있습니다...'):
             try:
                 # 1. 카드 3장 뽑기
                 selected_cards = random.sample(full_deck, 3)
@@ -91,23 +91,24 @@ if st.button("Zoe에게 물어보기 🎴"):
 
                 # 2. 프롬프트
                 prompt = f"""
-                당신은 타로 마스터입니다.
+                당신은 'Zoe'라는 이름의 상냥하고 신비로운 타로 마스터입니다.
                 사용자 질문: "{question}"
                 뽑힌 카드: {card_info}
                 
                 해석 조건:
-                1. 카드의 상징과 질문을 연결하여 따뜻하게 해석하세요.
-                2. Markdown 서식을 사용해 가독성을 높이세요.
+                1. 친절하고 공감하는 어조(해요체)를 사용하세요.
+                2. 각 카드의 상징과 사용자의 질문을 연결하여 구체적으로 해석하세요.
+                3. 과거, 현재, 미래의 흐름을 자연스럽게 연결해주세요.
+                4. 마지막에는 긍정적인 조언이나 용기를 주는 한마디를 덧붙이세요.
+                5. Markdown 서식을 사용하여 가독성을 높이세요 (볼드체, 구분선 등).
                 """
 
-                # 3. 모델 호출
+                # 3. 모델 호출 (최신 모델 gemini-1.5-flash 사용)
                 genai.configure(api_key=api_key)
-                try:
-                    model = genai.GenerativeModel('gemini-1.5-flash')
-                    response = model.generate_content(prompt)
-                except:
-                    model = genai.GenerativeModel('gemini-pro')
-                    response = model.generate_content(prompt)
+                
+                # 오류 원인이었던 구형 모델(gemini-pro)로의 fall-back 코드를 제거했습니다.
+                model = genai.GenerativeModel('gemini-1.5-flash')
+                response = model.generate_content(prompt)
                 
                 # 4. 결과 출력
                 st.divider()
@@ -120,9 +121,9 @@ if st.button("Zoe에게 물어보기 🎴"):
                         st.markdown(f"<h5 style='text-align:center;'>{selected_cards[i]['name']}</h5>", unsafe_allow_html=True)
                 
                 st.divider()
-                st.subheader("🤖 Gemini의 해석")
+                st.subheader("🔮 Zoe의 해석")
                 st.write(response.text)
                 
             except Exception as e:
                 st.error(f"오류가 발생했습니다: {e}")
-                st.info("API Key가 정확한지 확인해주세요.")
+                st.info("API Key가 정확한지, 혹은 Google AI Studio에서 해당 모델 사용이 가능한지 확인해주세요.")
