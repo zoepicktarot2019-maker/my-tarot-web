@@ -5,7 +5,7 @@ import google.generativeai as genai
 
 # --- [중요] 여기에 API 키를 붙여넣으세요 ---
 # 따옴표("") 안에 sk-로 시작하는 키를 넣으면 됩니다.
-MY_SECRET_KEY = "sk-여기에_당신의_긴_API키를_붙여넣으세요"
+MY_SECRET_KEY = "AIzaSyACXNn2KKH1093AToL1lflB80Pt7oGT7AM"
 # ---------------------------------------
 
 # --- 1. 페이지 설정 ---
