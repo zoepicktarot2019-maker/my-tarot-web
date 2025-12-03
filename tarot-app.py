@@ -5,8 +5,8 @@ import google.generativeai as genai
 
 # ==========================================
 # 👇 [필수] 여기에 본인의 API 키를 붙여넣으세요!
-# 따옴표("") 안에 sk-로 시작하는 키를 넣으시면 됩니다.
-MY_SECRET_KEY = "sk-여기에_당신의_긴_API키를_붙여넣으세요"
+# 따옴표("") 안에 가지고 계신 키를 그대로 넣으시면 됩니다.
+MY_SECRET_KEY = "AIzaSyACXNn2KKH1093AToL1lflB80Pt7oGT7AM"
 # ==========================================
 
 # --- 1. 페이지 설정 ---
@@ -20,13 +20,12 @@ st.markdown("### 구글 Gemini가 당신의 운명을 무료로 읽어드립니�
 with st.sidebar:
     st.header("🔧 설정")
     
-    # 1) 키가 제대로 입력되어 있는지 확인
-    # "여기에" 라는 글자가 포함되어 있거나, 키 길이가 너무 짧으면(입력 안 한 것) 입력창을 보여줌
-    if "여기에" in MY_SECRET_KEY or len(MY_SECRET_KEY) < 10:
+    # 키가 "여기에..." 라는 글자 그대로라면 (아직 입력 안 함) -> 입력창 보여줌
+    if "여기에_당신의" in MY_SECRET_KEY:
         api_key = st.text_input("Google AI API Key 입력", type="password")
         st.caption("※ 코드의 10번째 줄에 키를 적으면 이 입력창이 사라집니다.")
     
-    # 2) 키가 제대로 코드에 적혀 있으면 -> 입력창을 숨김!
+    # 키를 입력했다면 -> 입력창 숨김!
     else:
         api_key = MY_SECRET_KEY
         st.success("✅ API Key가 코드에 적용되었습니다.")
@@ -71,7 +70,8 @@ question = st.text_input("고민을 적어주세요:", placeholder="예: 지금 
 
 # --- 6. 상담 로직 ---
 if st.button("Gemini에게 물어보기 🎴"):
-    if not api_key:
+    # 키 확인
+    if not api_key or "여기에" in api_key:
         st.error("⚠️ API Key가 없습니다. 코드에 적거나 사이드바에 입력해주세요.")
     elif not question:
         st.warning("질문을 입력해주세요!")
@@ -104,7 +104,7 @@ if st.button("Gemini에게 물어보기 🎴"):
             3. 결과는 읽기 편하게 Markdown 서식을 사용하세요.
             """
 
-            # 3. 구글 Gemini 호출 (안전 장치 포함)
+            # 3. 구글 Gemini 호출
             try:
                 genai.configure(api_key=api_key)
                 
