@@ -4,7 +4,7 @@ import time
 import google.generativeai as genai
 
 # --- 1. 페이지 설정 ---
-st.set_page_config(page_title="Gemini 타로 상담소", page_icon="🔮", layout="wide")
+st.set_page_config(page_title="Gemini 타로 상담소 (Final)", page_icon="🔮", layout="wide")
 
 # --- 2. UI 및 API 키 설정 ---
 st.title("🔮 Gemini AI 타로 상담소")
@@ -89,10 +89,11 @@ if st.button("Gemini에게 물어보기 🎴"):
             3. 결과는 읽기 편하게 Markdown 서식을 사용하세요.
             """
 
-            # 구글 Gemini 호출 (핵심 변경 부분)
+            # 구글 Gemini 호출 (여기가 수정되었습니다!)
             try:
                 genai.configure(api_key=api_key)
-                model = genai.GenerativeModel('gemini-pro')
+                # 에러가 나던 'gemini-pro' 대신 최신 무료 모델 'gemini-1.5-flash' 사용
+                model = genai.GenerativeModel('gemini-1.5-flash')
                 response = model.generate_content(prompt)
                 
                 # 결과 출력
