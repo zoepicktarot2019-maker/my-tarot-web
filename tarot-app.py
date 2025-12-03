@@ -12,7 +12,7 @@ MY_SECRET_KEY = "AIzaSyACXNn2KKH1093AToL1lflB80Pt7oGT7AM"
 # --- 1. 페이지 설정 ---
 st.set_page_config(page_title="Zoe의 상냥한 타로 상담소", page_icon="🔮", layout="wide")
 
-# --- 2. 라이브러리 버전 확인 (화면 상단 표시) ---
+# --- 2. 버전 확인 ---
 try:
     version = importlib.metadata.version("google-generativeai")
 except:
@@ -20,21 +20,50 @@ except:
 
 # --- 3. UI 설정 ---
 st.title("🔮 Zoe의 상냥한 타로 상담소")
-# 버전이 0.8.3 이상인지 눈으로 확인하기 위해 표시합니다.
-st.caption(f"🚀 System Info: google-generativeai v{version} (0.8.3 이상이어야 함)")
+st.caption(f"🚀 System Status: v{version} (설치 성공!)")
 st.markdown("### Zoe가 당신의 운명을 읽어드립니다.")
 
-# --- 4. 사이드바 설정 ---
+# --- 4. 사이드바 & 모델 자동 감지 (핵심!) ---
 with st.sidebar:
     st.header("🔧 설정")
+    
+    # 키 확인
     if len(MY_SECRET_KEY) < 20:
         api_key = st.text_input("Google AI API Key 입력", type="password")
-        st.warning("⚠️ 코드 10번째 줄에 API Key를 입력해주세요.")
+        st.warning("⚠️ 코드 10번째 줄에 키를 넣어주세요.")
     else:
         api_key = MY_SECRET_KEY
-        st.success("✅ Zoe가 준비되었습니다.")
+    
+    st.divider()
+    st.write("🤖 **모델 선택**")
+    
+    # [핵심] 사용 가능한 모델을 자동으로 찾아옵니다
+    valid_models = []
+    if len(api_key) > 20:
+        try:
+            genai.configure(api_key=api_key)
+            for m in genai.list_models():
+                if 'generateContent' in m.supported_generation_methods:
+                    valid_models.append(m.name)
+        except:
+            pass
+            
+    # 모델 선택 상자 만들기
+    if valid_models:
+        # gemini-1.5-flash가 있으면 그걸 기본으로, 없으면 첫 번째 것 선택
+        default_idx = 0
+        for i, m in enumerate(valid_models):
+            if "flash" in m:
+                default_idx = i
+                break
+        selected_model = st.selectbox("사용할 모델을 선택하세요:", valid_models, index=default_idx)
+        st.success(f"✅ 연결 성공: {selected_model}")
+    else:
+        st.error("⚠️ 사용 가능한 모델을 찾지 못했습니다.")
+        st.info("API Key가 올바른지 확인하거나, 새로 발급받아 보세요.")
+        selected_model = None
 
-# --- 5. 타로 데이터 (78장) ---
+# --- 5. 타로 데이터 ---
 major_arcana = [
     {"name": "The Fool (광대)", "emoji": "🤡"}, {"name": "The Magician (마법사)", "emoji": "🧙‍♂️"},
     {"name": "The High Priestess (여사제)", "emoji": "📜"}, {"name": "The Empress (여황제)", "emoji": "👸"},
@@ -49,29 +78,25 @@ major_arcana = [
     {"name": "Judgement (심판)", "emoji": "📯"}, {"name": "The World (세계)", "emoji": "🌍"}
 ]
 suits = [
-    {"name": "Wands", "emoji": "🪄", "mean": "열정/행동"}, {"name": "Cups", "emoji": "🏆", "mean": "감정/사랑"},
-    {"name": "Swords", "emoji": "⚔️", "mean": "이성/고뇌"}, {"name": "Pentacles", "emoji": "🪙", "mean": "현실/물질"}
+    {"name": "Wands", "emoji": "🪄", "mean": "열정"}, {"name": "Cups", "emoji": "🏆", "mean": "감정"},
+    {"name": "Swords", "emoji": "⚔️", "mean": "이성"}, {"name": "Pentacles", "emoji": "🪙", "mean": "현실"}
 ]
 ranks = ["Ace", "2", "3", "4", "5", "6", "7", "8", "9", "10", "Page", "Knight", "Queen", "King"]
 full_deck = major_arcana + [{"name": f"{r} of {s['name']}", "emoji": s['emoji'], "suit_meaning": s['mean']} for s in suits for r in ranks]
 
-# --- 6. 사용자 질문 ---
-question = st.text_input("고민을 적어주세요:", placeholder="예: 지금 하는 일이 잘 풀릴까요?")
+# --- 6. 메인 로직 ---
+question = st.text_input("고민을 적어주세요:", placeholder="예: 유튜브 채널이 잘 될까요?")
 
-# --- 7. 상담 로직 ---
 if st.button("Zoe에게 물어보기 🎴"):
-    if not api_key or len(api_key) < 20:
-        st.error("⚠️ API Key 오류: 설정에서 키를 확인해주세요.")
+    if not selected_model:
+        st.error("❌ 사용할 수 있는 AI 모델이 없습니다. 사이드바 설정을 확인하세요.")
     elif not question:
         st.warning("질문을 입력해주세요!")
     else:
-        with st.spinner('Zoe가 78장의 카드를 읽고 있습니다...'):
+        with st.spinner(f'Zoe가 {selected_model} 모델로 운명을 읽고 있습니다...'):
             try:
-                # 카드 뽑기
                 cards = random.sample(full_deck, 3)
                 positions = ["과거", "현재", "미래"]
-                
-                # 프롬프트 구성
                 card_text = "\n".join([f"{i+1}. {positions[i]}: {c['name']} {c.get('suit_meaning','')}" for i, c in enumerate(cards)])
                 
                 prompt = f"""
@@ -80,16 +105,14 @@ if st.button("Zoe에게 물어보기 🎴"):
                 카드:
                 {card_text}
                 
-                친절하고 신비로운 말투(해요체)로, 카드의 상징과 질문을 연결해 해석해주세요.
-                Markdown으로 보기 좋게 출력하세요.
+                친절하고 신비로운 말투(해요체)로 해석해주세요.
+                Markdown 서식을 사용하세요.
                 """
-
-                # 모델 호출 (오직 1.5 Flash만 사용)
-                genai.configure(api_key=api_key)
-                model = genai.GenerativeModel('gemini-1.5-flash')
+                
+                # 선택된 모델로 호출
+                model = genai.GenerativeModel(selected_model)
                 response = model.generate_content(prompt)
                 
-                # 결과 출력
                 st.divider()
                 st.write(f"### **Q. {question}**")
                 cols = st.columns(3)
@@ -97,12 +120,9 @@ if st.button("Zoe에게 물어보기 🎴"):
                     with cols[i]:
                         st.markdown(f"<div style='text-align:center; color:gray;'>{positions[i]}</div>", unsafe_allow_html=True)
                         st.markdown(f"<div style='font-size:60px; text-align:center;'>{cards[i]['emoji']}</div>", unsafe_allow_html=True)
-                        st.markdown(f"<div style='text-align:center; font-weight:bold;'>{cards[i]['name']}</div>", unsafe_allow_html=True)
-                
                 st.divider()
                 st.subheader("🔮 Zoe의 해석")
                 st.write(response.text)
                 
             except Exception as e:
-                st.error(f"오류가 발생했습니다: {e}")
-                st.info("System Info 버전을 확인해주세요. 0.8.3 미만이면 requirements.txt 수정이 반영되지 않은 것입니다.")
+                st.error(f"오류: {e}")
