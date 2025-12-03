@@ -69,7 +69,7 @@ full_deck = major_arcana + minor_arcana
 question = st.text_input("고민을 적어주세요:", placeholder="예: 지금 하는 공부가 나에게 맞을까요?")
 
 # --- 6. 상담 로직 ---
-if st.button("Gemini에게 물어보기 🎴"):
+if st.button("Zoe에게 물어보기 🎴"):
     if not api_key or len(api_key) < 20:
         st.error("⚠️ API Key가 유효하지 않습니다. 코드나 사이드바를 확인해주세요.")
     elif not question:
