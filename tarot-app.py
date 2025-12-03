@@ -2,36 +2,39 @@ import streamlit as st
 import random
 import time
 import google.generativeai as genai
+import importlib.metadata # 버전을 확인하기 위한 도구
 
 # ==========================================
-# 👇 [필수] 10번째 줄 따옴표 안에 가지고 계신 API 키를 붙여넣으세요!
-# (주의: '여기에...' 글자는 지우고 키만 넣으셔야 합니다.)
+# 👇 [필수] API 키 입력
 MY_SECRET_KEY = "AIzaSyACXNn2KKH1093AToL1lflB80Pt7oGT7AM"
 # ==========================================
 
 # --- 1. 페이지 설정 ---
 st.set_page_config(page_title="Zoe의 상냥한 타로 상담소", page_icon="🔮", layout="wide")
 
-# --- 2. UI 설정 ---
+# --- 2. 버전 확인 (디버깅용) ---
+# 이 부분이 화면 맨 위에 버전을 보여줍니다.
+try:
+    lib_version = importlib.metadata.version("google-generativeai")
+except:
+    lib_version = "확인 불가"
+
+# --- 3. UI 설정 ---
 st.title("🔮 Zoe의 상냥한 타로 상담소")
+st.caption(f"🔧 System Status: google-generativeai v{lib_version}") # 버전을 화면에 표시
 st.markdown("### Zoe가 당신의 운명을 읽어드립니다.")
 
-# --- 3. 사이드바 설정 ---
+# --- 4. 사이드바 설정 ---
 with st.sidebar:
     st.header("🔧 설정")
-    
-    # 키 길이가 20글자보다 짧으면 (키를 안 넣은 것으로 간주) -> 입력창 표시
     if len(MY_SECRET_KEY) < 20:
         api_key = st.text_input("Google AI API Key 입력", type="password")
-        st.warning("⚠️ 코드 10번째 줄에 API Key를 입력하면 이 창이 사라집니다.")
-    
-    # 키가 20글자 이상이면 (키를 넣은 것으로 간주) -> 입력창 숨김
+        st.warning("⚠️ 코드 10번째 줄에 API Key를 입력해주세요.")
     else:
         api_key = MY_SECRET_KEY
         st.success("✅ Zoe가 준비되었습니다.")
-        st.info("API Key 설정 완료")
 
-# --- 4. 타로 카드 데이터 (78장) ---
+# --- 5. 타로 카드 데이터 (78장) ---
 major_arcana = [
     {"name": "The Fool (광대)", "emoji": "🤡"}, {"name": "The Magician (마법사)", "emoji": "🧙‍♂️"},
     {"name": "The High Priestess (여사제)", "emoji": "📜"}, {"name": "The Empress (여황제)", "emoji": "👸"},
@@ -62,22 +65,20 @@ for suit in suits:
             "emoji": suit['emoji'],
             "suit_meaning": suit['meaning']
         })
-
 full_deck = major_arcana + minor_arcana
 
-# --- 5. 사용자 질문 ---
+# --- 6. 사용자 질문 ---
 question = st.text_input("고민을 적어주세요:", placeholder="예: 지금 하는 공부가 나에게 맞을까요?")
 
-# --- 6. 상담 로직 ---
+# --- 7. 상담 로직 ---
 if st.button("Zoe에게 물어보기 🎴"):
     if not api_key or len(api_key) < 20:
-        st.error("⚠️ API Key가 유효하지 않습니다. 코드나 사이드바를 확인해주세요.")
+        st.error("⚠️ API Key가 유효하지 않습니다.")
     elif not question:
         st.warning("질문을 입력해주세요!")
     else:
         with st.spinner('Zoe가 78장의 타로 카드를 읽고 있습니다...'):
             try:
-                # 1. 카드 3장 뽑기
                 selected_cards = random.sample(full_deck, 3)
                 positions = ["과거/원인", "현재/상황", "미래/결과"]
                 
@@ -89,26 +90,30 @@ if st.button("Zoe에게 물어보기 🎴"):
                         info += f" (속성: {card['suit_meaning']})"
                     card_info += info + "\n"
 
-                # 2. 프롬프트 (Zoe 페르소나 적용)
                 prompt = f"""
                 당신은 'Zoe'라는 이름의 상냥하고 신비로운 타로 마스터입니다.
                 사용자 질문: "{question}"
                 뽑힌 카드: {card_info}
-                
                 해석 조건:
                 1. 친절하고 공감하는 어조(해요체)를 사용하세요.
                 2. 각 카드의 상징과 사용자의 질문을 연결하여 구체적으로 해석하세요.
-                3. 과거, 현재, 미래의 흐름을 자연스럽게 연결해주세요.
-                4. 마지막에는 긍정적인 조언이나 용기를 주는 한마디를 덧붙이세요.
-                5. Markdown 서식을 사용하여 가독성을 높이세요.
+                3. Markdown 서식을 사용하여 가독성을 높이세요.
                 """
 
-                # 3. 모델 호출 (최신 1.5 Flash 모델만 사용)
+                # 모델 호출 (이중 안전장치 적용)
                 genai.configure(api_key=api_key)
-                model = genai.GenerativeModel('gemini-1.5-flash')
-                response = model.generate_content(prompt)
                 
-                # 4. 결과 출력
+                try:
+                    # 1순위: 최신 모델 시도
+                    model = genai.GenerativeModel('gemini-1.5-flash')
+                    response = model.generate_content(prompt)
+                except:
+                    # 2순위: 실패하면 구형 모델 시도 (구버전 라이브러리 대응)
+                    st.warning("⚠️ 최신 모델 연결 실패, 예비 모델(gemini-pro)로 전환합니다.")
+                    model = genai.GenerativeModel('gemini-pro')
+                    response = model.generate_content(prompt)
+                
+                # 결과 출력
                 st.divider()
                 st.write(f"### **Q. {question}**")
                 cols = st.columns(3)
@@ -124,4 +129,4 @@ if st.button("Zoe에게 물어보기 🎴"):
                 
             except Exception as e:
                 st.error(f"오류가 발생했습니다: {e}")
-                st.info("requirements.txt 파일에 'google-generativeai>=0.8.3'이 적혀있는지 꼭 확인해주세요!")
+                st.info("API Key가 정확한지 확인해주세요.")
